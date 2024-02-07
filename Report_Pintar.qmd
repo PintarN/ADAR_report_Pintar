@@ -1,33 +1,108 @@
 ---
-title: "Knowledge complexity of European metropolitan regions"
-subtitle: "ADAR project report"
-author: "Nico Pintar, h1052260"
-date: "February 2024"
+title: |
+  | Knowledge complexity of European 
+  | metropolitan regions
+subtitle: |
+  | 
+  | ADAR project report, WS 17/18
+author: "*Nico Pintar*, h1052260"
+date: 02/07/2024
+date-format: "MMMM YYYY"
+abstract: "Knowledge creation is widely considered as the central driver for innovation, and accordingly, for creating
+competitive advantage. However, most measurement approaches have so far mainly focused on the quantitative
+dimension of knowledge creation, neglecting that not all knowledge has the same value (Balland and Rigby,
+2017). The notion of knowledge complexity has come into use in this context just recently as an attempt to
+measure the quality of knowledge in terms of its uniqueness and its replicability. The central underlying
+assumption is that more complex knowledge is more difficult to be replicated, and therefore provides a higher
+competitive advantage for firms, or at an aggregated level, regions and countries. The objective of this study is to
+advance and apply measures for regional knowledge complexity to a set of European regions, and to highlight its
+potential in a regional policy context."
 format:
   pdf:
-    documentclass: report
-    toc: true
-    number-sections: false
+    documentclass: article
+    toc: false
+    number-sections: true
     colorlinks: true
+    geometry:
+      - top=30mm
+      - left=30mm
+      - right=30mm
 ---
 
-## Quarto
+# Background and motivation
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+The ability to create and adapt new knowledge as a pre-requisite for
+successful innovation is widely considered as an important driver for the
+competitiveness and productivity of firms, and accordingly the regions where these firms
+are located (see e.g. Malecki, 2014). Therefore, the development and
+application of indicators on knowledge production has become one of
+the central concerns not only in a scientific context per se, but increasingly 
+as a major instrument to orientate and evaluate research and
+innovation policies (see e.g. Godin, 2003; Katz, 2006), often referred to
+under the notion of policy learning and evidence-based policy making
+(Borras and Laatsit, 2019; Sanderson, 2002). In this context, many
+scholars point to the growth of the *indicators landscape* in terms of
+quantity and data availability, which is at the same time characterised
+by more limitations in times of increased complexity of innovation
+processes and systems (see e.g. Freeman and Soete, 2009).  
 
-## Running Code
+One weakness that we can specifically observe of indicators on
+knowledge production – with knowledge production considered as the
+main underlying driver for innovation – is its focus on *quantity*. In other
+words, common indicators measuring knowledge production activities,
+often derived from patenting information, focus on pure quantitative
+counts of some knowledge outputs, relating such outputs to innovative
+outcomes. This is also common practice for most policy-oriented indicator systems, 
+such as the European innovation scoreboard (Hollanders
+et al., 2009). Accordingly, in such works it is implicitly assumed that all
+knowledge has the same value, i.e. the quality of knowledge is often
+neglected (Balland and Rigby, 2017). 
 
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+Against this background, the notion of *knowledge complexity* has
+come into play more prominently in the recent past (see e.g. Balland and
+Rigby, 2017). Within this conception, the complex nature of knowledge
+is associated with its value and quality in terms of accessibility and
+mobility in (geographical) space, with a higher complexity reflecting
+increasing quality but decreasing accessibility for others due to its
+higher degree of *tacitness* and, accordingly, spatial *stickiness*. In
+essence, the approach is derived from the work presented by Hidalgo
+and Hausmann (2009) who introduced the complexity notion to grasp
+the ability of countries to export non-ubiquitous product groups. This
+was transferred to the concept of knowledge complexity, and to the
+regional level (Balland and Rigby, 2017; Ivanova et al., 2017; Pintar and
+Scherngell, 2018) as an equivalent in terms of the knowledge domains
+regions are capable of. From the perspective of complexity and systems
+theory (Fleming and Sorenson, 2001; Kauffman, 1993; Simon, 1962),
+the complexity of knowledge can be well related to the variety of
+differing knowledge components it contains, and the interdependencies
+of those components.
 
-```{r}
-1 + 1
-```
+With its focus on knowledge complexity, this study lies in the vein of
+the research stream exploring knowledge production processes and their
+dynamics, but takes a spatial economics and regional policy perspective
+in its conceptualisation and application. The objective is to advance
+measures for regional knowledge complexity, and to apply them to a set
+of European regions, highlighting its potential in a regional policy
+context. Furthermore, we apply the regional knowledge
+complexity measures to a new and more meaningful set of European
+regions. Most works investigating regional knowledge production rely
+on standard administrative classifications (mostly NUTS-2) that might
+artificially intersect agglomerations of knowledge creation (cities)
+leading to problematic interpretations in a spatial context (Lepori et al.,
+2019). If a considerable share of residents in areas close to or around
+large cities commute to work, economic activity in these commuter belts
+should be counted towards the main city, essentially creating functional
+areas. The so-called *metropolitan regions* defined by EUROSTAT (2019) 
+- which we use in this study as a unit of observation-  aim to do that. 
+The final contribution of this study is to relate regional knowledge
+complexity - compared to non-complex knowledge production -  to regional productivity in a spatial regression framework. 
+As regions are increasingly embedded into their surroundings in their knowledge production activities - be it via formal or informal research and development collaborations - it is important to relax the independent observation assumption of basic linear regression models and explicitly take space into account. Specifically, we employ a spatial durbin model (SDM) that introduces a spatially lagged dependent variable and multiple spatially lagged independent variables to explain regional knowledge production. In order to also explore whether different subsets of the population of regions are differently equipped 
+to properly extract economic (or productivity) gain from complex knowledge production, an effort is made to estimate a spatially eigenvector filtered unconditional quantile regression.
 
-You can add options to executable code like this 
 
-```{r}
-#| echo: false
-2 * 2
-```
+# Methods and empirical approach
 
-The `echo: false` option disables the printing of code (only output is displayed).
+
+# Analysing European regional knowledge complexity in *R*
+
+# Conclusion
