@@ -93,7 +93,7 @@ leading to problematic interpretations in a spatial context (Lepori et al.,
 large cities commute to work, economic activity in these commuter belts
 should be counted towards the main city, essentially creating functional
 areas. The so-called *metropolitan regions* defined by EUROSTAT (2019) 
-- which we use in this study as a unit of observation-  aim to do that. 
+- which we use in this study as a unit of observation -  aim to do that. 
 The final contribution of this study is to relate regional knowledge
 complexity - compared to non-complex knowledge production -  to regional productivity in a spatial regression framework. 
 As regions are increasingly embedded into their surroundings in their knowledge production activities - be it via formal or informal research and development collaborations - it is important to relax the independent observation assumption of basic linear regression models and explicitly take space into account. Specifically, we employ a spatial durbin model (SDM) that introduces a spatially lagged dependent variable and multiple spatially lagged independent variables to explain regional knowledge production. In order to also explore whether different subsets of the population of regions are differently equipped 
@@ -102,6 +102,75 @@ to properly extract economic (or productivity) gain from complex knowledge produ
 
 # Methods and empirical approach
 
+## Operationalisation of knowledge complexity
+
+The concept of economic complexity
+grasps the ability of countries to export non-ubiquitous product groups,
+which can only be traded by relatively few countries. The fact that a
+country is able to export such sophisticated products competitively
+should signal the existence of a large set of necessary latent (technological) capabilities which in turn should constitute a competitive advantage. Indeed, economic complexity has been shown to be superior
+in predicting future economic growth of a country to other indicators
+such as education and institutional quality (Hausmann et al., 2011). This
+fundamental concept of economic complexity can be very well translated to (regional) knowledge production and has recently been applied in the context of knowledge complexity.
+In this study, we follow this recent research direction of employing
+the approach of Hidalgo and Hausmann (2009) to capture the
+complexity of knowledge of spatial entities (countries or regions), using
+their technological patent portfolio (patents of a specific technological
+domain applied for in a specific region). Then we combine – in the same way as done
+with exports for the economic complexity index – the diversity and
+ubiquity of the citation-adjusted patent portfolio of a country/region in
+a knowledge complexity index for countries or regions (see e.g. Antonelli et al., 2017; Balland et al., 2019; Balland and Rigby, 2017; Ivanova et al., 2017; Whittle, 2017). In terms of interpretation, the knowledge complexity
+index proposed by Balland and Rigby (2017) - and applied in this study - of countries or regions is
+understood as their ability to create and sustain knowledge bases that
+are non-ubiquitous in the system.
+
+More specifically, a region’s knowledge complexity is understood as a function of its diversity in terms of different technologies produced, and the ubiquity of these technologies, i.e. how many other regions are capable of producing and
+‘exporting’ knowledge related to a specific technological field. Accordingly, the knowledge complexity of regions is based on the region-by-technology network matrix, representing the technological
+portfolio of all regions as it connects each spatial entity $i=(1\ldots N)$ with technological fields $i=(1\ldots K)$ in which it is specialised in. Similar to previous literature we use the concept of Revealed Comparative
+Advantage (RCA) by Balassa (1965) to find apparent specialisations of regions in technologies for the time period given by $t$ (subscript t omitted for clarity purposes).
+
+\begin{align}
+RCA_{ik} = \frac{X_{ik}}{\sum_k X_{ik}} / \frac{\sum_i X_{ik}}{\sum_i \sum_k X_{ik}}
+\end{align}
+
+The RCA of a region in a specific technological field is the ratio between the share of the regions’ knowledge production in this field and the share of the same technological field in the whole sample. $X_{ik}$ can be
+any proxy of knowledge production of region $i$ in technology $k$. Similar to the majority of related literature, We use patent applications to account  for knowledge production. A value larger than one signals a relative regional specialisation in the specific field. Consequently, we define the matrix $M$ as 
+
+
+\begin{align}
+M_{ik} =  \begin{cases} &\text{1 } \ if \  RCA_{ik} >1 \\
+                &\text{0 } \ if \ RCA_{ik} \le 1,
+                \end{cases}
+\end{align}
+
+i.e. elements are set to 1 if a region is specialised in a certain technology,
+and to zero otherwise. $M$ can – from a graph theoretic perspective – also
+be described as a bipartite graph with two distinct sets of nodes (the $N$
+regions and $K$ technological fields) where only nodes of different types
+can be connected. Region $i$ is connected to field $k$ in the European
+knowledge production network if, and only if, $M_{ik}=1$. The diversity in
+knowledge production of region $i$ is then simply given by its degree
+centrality, $d_i=\sum_k M_{ik}$. Analogously, the ubiquity of $k$ is equal to its
+degree centrality, $u_k=\sum_i M_{ik}$. Hidalgo and Hausmann (2009) introduced the so-called *Method of Reflections* in order to infer the complexity of countries (and products) from the network of global exports of
+products. Translated to our notation and applied to knowledge production, this iterative, self-referential algorithm (see eq. \ref{eq-mr}) takes regional diversification and the ubiquity of technological fields
+and then recursively refines these variables with $n$ iterations to
+yield estimates of regional and technological complexity $(d_i^n ; u_k^n)$.
+
+\begin{align} \label{eq-mr}
+\begin{cases}
+d_i^n = \frac{1}{d_i^0} \sum_k M_{ik} \ u_k^{n-1} \\
+u_k^n = \frac{1}{u_k^0} \sum_i M_{ik} \ d_i^{n-1}
+\end{cases}
+\end{align}
+
+In other words, this algorithm produces generalised measures of
+diversification and ubiquity where each iteration uses information from
+previous iterations to yield a finer estimate of regional and technological
+complexity, respectively. Each even iteration of $d_i^n$ is a finer estimate of
+regional knowledge complexity, calculated as the average ubiquity of
+technological fields (at iteration (n − 1)) in which this region is specialised in. Analogously, each uneven iteration of $u_k^n$ produces a better estimate of technological complexity as the average diversification of
+regions (at iteration (n − 1)) that are able to produce knowledge in that
+particular field.
 
 # Analysing European regional knowledge complexity in *R*
 
