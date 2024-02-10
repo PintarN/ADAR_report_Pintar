@@ -96,13 +96,12 @@ areas. The so-called *metropolitan regions* defined by EUROSTAT (2019)
 - which we use in this study as a unit of observation -  aim to do that. 
 The final contribution of this study is to relate regional knowledge
 complexity - compared to non-complex knowledge production -  to regional productivity in a spatial regression framework. 
-As regions are increasingly embedded into their surroundings in their knowledge production activities - be it via formal or informal research and development collaborations - it is important to relax the independent observation assumption of basic linear regression models and explicitly take space into account. Specifically, we employ a spatial durbin model (SDM) that introduces a spatially lagged dependent variable and multiple spatially lagged independent variables to explain regional knowledge production. In order to also explore whether different subsets of the population of regions are differently equipped 
-to properly extract economic (or productivity) gain from complex knowledge production, an effort is made to estimate a spatially eigenvector filtered unconditional quantile regression.
+As regions are increasingly embedded into their surroundings in their knowledge production activities - be it via formal or informal research and development collaborations - it is important to relax the independent observation assumption of basic linear regression models and explicitly take space into account. Specifically, we employ a spatial durbin model (SDM) that introduces a spatially lagged dependent variable and multiple spatially lagged independent variables to explain regional knowledge production. In order to also explore whether different subsets of the population of regions are differently equipped  to properly extract economic (or productivity) gain from complex knowledge production, an effort is made to estimate a spatially eigenvector filtered unconditional quantile regression.
 
 
 # Methods and empirical approach
 
-## Operationalisation of knowledge complexity
+## Operationalisation of knowledge complexity \label{sec-oper}
 
 The concept of economic complexity
 grasps the ability of countries to export non-ubiquitous product groups,
@@ -172,6 +171,40 @@ technological fields (at iteration (n − 1)) in which this region is specialise
 regions (at iteration (n − 1)) that are able to produce knowledge in that
 particular field.
 
+## Theoretical framework and modelling approach
+
+## Data
+
+As elaborated in the previous section, the main focus of this study is to analyse the relationship between regional complex knowledge capital and regional productivity while at the same time explicitly accounting for spatial dependence and spatial heterogeneity in regional innovation activities. We proxy regional innovation activities or knowledge production with patent applications to the European patent office (EPO) by inventors within *metropolitan regions* defined by EUROSTAT (2019). These regions aim to capture urban agglomerations in Europe and defined as aggregates of NUTS-3 regions where at least 50\% of the population lives inside a functional urban area that is composed of $250.000$ or more inhabitants. 
+
+We retrieve patent applications to the European Patent Office (EPO) by EU and EFTA inventors between
+1996 and 2016 from the OECD REGPAT database, which offers regionalised patent data. Patents are allocated to NUTS-3 regions in the REGPAT database, where patents are attributed to regions by inventor residence. We map patents located in these NUTS-3 regions to *metropolitan regions* as defined by EUROSTAT and remove (fractional) patents that are located in peripheral regions according to this classification. Similar to related literature, we define knowledge capital as aggregates of patent applications of regional inventors using a five-year moving window. Patent applications associated with the year 2000 (the first period in the sample), for example, are then the sum of patent applications from years 1996 to 2000.  
+
+Using patents mapped to *metropolitan regions* regions, it is then possible to calculate regional knowledge complexity scores for each period 2000-2016, following elaborations in section \ref{sec-oper} and specifically equation \ref{eq-mr}. Regional complex knowledge capital is then defined as the complexity weighted regional knowledge capital.
+ 
+Regional productivity is calculated using regional output and regional production factor inputs of labour and capital.  
+We define the regional total factor productivity index ($p$) adapted from Caves et al. (1982).
+
+
+\begin{align}
+p_{it} = q_{it} - s \, l_{it} - (1-s) \, c_{it}
+\end{align}
+
+Lower case letters refer to variables in logged form. Here, lower case $s$ is the assumed share of labour costs in the production process. Similar to related studies (e.g. Beugelsdijk, Klasing and Milionis, 2018), we set s equal
+to $2/3$. Regional output ($q$) is measured via real regional gross value added. Labour input ($l$) is
+the number of employees, adjusted by differences in the average working hours per country.
+The capital stock of a region is defined as the five year sum of past real gross fixed capital
+formation (investment). All non-patent variables described above are sourced for the period 2000 to 2021 from ARDECO. As the growth of productivity is arguably even more of relevance for policy decisions than the level of productivity per se, we focus in this analysis on the five-year growth rate of productivity as our main dependent variable. We define the five-year growth rate of productivity as the difference of $p_{i(t+5)}-p_{it}$. Consequently, the last year under investigation is $t=2016$ where the dependent variable refers to TFP growth from 2016 to 2021. 
+
+Keeping only regions that produce at $50$ patent applications per period (which is necessary to assure sensible knowledge complexity scores) and regions where output, labour and capital data is available until 2021, yields a balanced panel with 192 *metropolitan regions* and 17 time periods (2000-2016).
+
+
 # Analysing European regional knowledge complexity in *R*
+
+## Descriptive analysis
+
+
+
+## Inferential analysis
 
 # Conclusion
