@@ -23,10 +23,12 @@ format:
     toc: false
     number-sections: true
     colorlinks: true
+    fig-cap-location: top
     geometry:
       - top=30mm
-      - left=30mm
-      - right=30mm
+      - left=25mm
+      - right=25mm
+      - bottom=25mm
 ---
 
 # Background and motivation
@@ -180,7 +182,7 @@ As elaborated in the previous section, the main focus of this study is to analys
 We retrieve patent applications to the European Patent Office (EPO) by EU and EFTA inventors between
 1996 and 2016 from the OECD REGPAT database, which offers regionalised patent data. Patents are allocated to NUTS-3 regions in the REGPAT database, where patents are attributed to regions by inventor residence. We map patents located in these NUTS-3 regions to *metropolitan regions* as defined by EUROSTAT and remove (fractional) patents that are located in peripheral regions according to this classification. Similar to related literature, we define knowledge capital as aggregates of patent applications of regional inventors using a five-year moving window. Patent applications associated with the year 2000 (the first period in the sample), for example, are then the sum of patent applications from years 1996 to 2000.  
 
-Using patents mapped to *metropolitan regions* regions, it is then possible to calculate regional knowledge complexity scores for each period 2000-2016, following elaborations in section \ref{sec-oper} and specifically equation \ref{eq-mr}. Regional complex knowledge capital is then defined as the complexity weighted regional knowledge capital.
+Using patents mapped to *metropolitan regions* regions, it is then possible to calculate regional knowledge complexity scores for each period 2000-2016, following elaborations in Section \ref{sec-oper} and specifically Equation \ref{eq-mr}. Regional complex knowledge capital is then defined as the complexity weighted regional knowledge capital.
  
 Regional productivity is calculated using regional output and regional production factor inputs of labour and capital.  
 We define the regional total factor productivity index ($p$) adapted from Caves et al. (1982).
@@ -198,10 +200,259 @@ formation (investment). All non-patent variables described above are sourced for
 
 Keeping only regions that produce at $50$ patent applications per period (which is necessary to assure sensible knowledge complexity scores) and regions where output, labour and capital data is available until 2021, yields a balanced panel with 192 *metropolitan regions* and 17 time periods (2000-2016).
 
-
 # Analysing European regional knowledge complexity in *R*
 
+## Setup
+
+Setting **knitr** options allows to define sensible standard settings for *echo*, *warning*, etc. as well as to define automatic saving of figures that are implemented in the quarto document.
+
+```{r}
+#| label: quarto-setup
+#| echo: true
+#| warning: false
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE, fig.path='Figs/', dpi = 750)
+```
+
+Below I define a vector of packages needed in the following script that are all installed (if necessary) and attached. I will mention and describe the usage specific packages in the following text, if relevant.
+
+```{r}
+#| label: packages
+
+
+r = getOption("repos")
+r["CRAN"] = "https://cran.wu.ac.at/"
+options(repos = r)
+
+## packages
+list.of.packages <- c('MASS', 'rlang', "tidyverse", 'dplyr','tibble','purrr','slider',
+                      'foreign','extrafont',
+                      'grid', 'gridExtra', 
+                      'ggplot2', 'ggrepel', 'lemon','viridis','colorspace',
+                      'scales','wesanderson','RColorBrewer','ggthemes', 
+                      'bookdown','knitr',
+                      'kableExtra', 'DescTools',
+                      'lme4','withr',
+                      'tictoc',
+                      'corrr','psych','corrplot',
+                      'rgdal','spdep','sf','rnaturalearth',
+                      'plm','splm','GWPR.light','spatialreg', 'modelsummary', 'broom',
+                       'stargazer', 'export')
+
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+invisible(lapply(list.of.packages, require, character.only = TRUE))
+
+#load own package Pmisc, separate because devtools::install_github needs to be used
+#devtools::install_github("PintarN/Pmisc")
+library('Pmisc')
+
+```
+
 ## Descriptive analysis
+
+### Data preparation
+
+For data manipulation and basic calculations I use almost exclusively functions and syntax from the [**tidyverse**](https://www.tidyverse.org/). This set of packages (including for example **dplyr**) introduces a variety of functions for several data handling or data science operations. Furthermore it introduces a intuitive way to link operations on a single object with the so-called *pipe* (%>%). 
+
+```{r}
+#| label: load-data
+
+#load balanced panel with data
+metro.panel.load <- readRDS(file = '../data/metro_balanced_panel_calc_070124.rds')
+
+#limiting to main variables and renaming to make consistent
+#the suffix _f always refers to fractional counting of patents, ck refers to 
+#complex knowledge capital whereas k refers to knowledge capital, 
+#ECI refers to the economic complexity index (which is used to proxy complex knowledge) 
+#and ECI_f_wt then to the complexity weight used to weight knowledge capital to yield complex knowledge capital
+metro.panel <- metro.panel.load %>% 
+  dplyr::select(metro_code, metro_name, year,tfp, 
+                ln_gva, ln_emp_wt, ln_cap, ln_k_f, 
+                ln_ck_f = ln_kc_f,ECI_f_wt)
+
+```
+
+```{r}
+#| label: growths
+
+#calculate five-year growth rates of tfp, the main dependent variable
+metro.panel <- metro.panel %>% dplyr::group_by(metro_code) %>% dplyr::mutate(
+  tfp_gr_5 = dplyr::lead(tfp,5) - dplyr::lead(tfp,0),
+  tfp_gr_5_pt = 100*tfp_gr_5
+  ) %>% ungroup()
+
+```
+
+I store my data in *tibbles* which is a form of *dataframe* and behaves basically the same with a few cosmetic differences. The main dataset looks as follows:
+
+```{r}
+metro.panel
+```
+
+Before doing any proper data analysis, I create summary descriptive statistics for each variable and each year.
+
+```{r}
+#| label: summary-stats
+
+#create list of all numeric variables of interest
+summary.variables <- as.list(metro.panel %>% dplyr::select(-year) %>% 
+                               dplyr::select_if(~ is.numeric(.)) %>% colnames())
+
+names(summary.variables) <- metro.panel %>% dplyr::select(-year) %>% 
+  dplyr::select_if(~ is.numeric(.)) %>% colnames()
+
+#calculate yearly summary statistics, exemplary for tfp, tfp growth and ln_ck_f
+
+#tfp
+zeros <- metro.panel %>% group_by(year) %>% select(year, tfp) %>% 
+  dplyr::count(zeros = tfp ==0) %>% dplyr::filter(zeros == T) %>% 
+  select(-zeros) %>% dplyr::rename(zeros = n)
+
+summary.variables$tfp <- metro.panel %>% group_by(year) %>% 
+  select(year, tfp) %>% dplyr::summarise(summary = list(summary(tfp)))  %>% 
+  tidyr::unnest_auto(col = summary) %>% dplyr::left_join(zeros, by = 'year') 
+
+#tfp growth
+zeros <- metro.panel %>% group_by(year) %>% select(year, tfp_gr_5_pt) %>% 
+  dplyr::count(zeros = tfp_gr_5_pt ==0) %>% dplyr::filter(zeros == T) %>% 
+  select(-zeros) %>% dplyr::rename(zeros = n)
+
+summary.variables$tfp_gr_5_pt <- metro.panel %>% group_by(year) %>% 
+  select(year, tfp_gr_5_pt) %>% dplyr::summarise(summary = list(summary(tfp_gr_5_pt)))  %>% 
+  tidyr::unnest_auto(col = summary) %>% dplyr::left_join(zeros, by = 'year') 
+
+#ln_ck_f
+zeros <- metro.panel %>% group_by(year) %>% select(year, ln_ck_f) %>% 
+  dplyr::count(zeros = ln_ck_f ==0) %>% dplyr::filter(zeros == T) %>% 
+  select(-zeros) %>% dplyr::rename(zeros = n)
+
+summary.variables$ln_ck_f <- metro.panel %>% group_by(year) %>% 
+  select(year, ln_ck_f) %>% dplyr::summarise(summary = list(summary(ln_ck_f))) %>% 
+  tidyr::unnest_auto(col = summary) %>% dplyr::left_join(zeros, by = 'year') 
+
+```
+
+### Basic descriptives
+
+Using **kableExtra** I can easily create formatted latex tables that are included in the report.
+
+```{r}
+#| label: summaries
+
+#tfp
+#change 1d table in df to double for kable to work
+summary.table.tfp <- summary.variables$tfp %>% 
+  mutate(dplyr::across(.cols = 2:8, as.numeric))
+
+#use kable to format and create latex code for table
+kableExtra::kable(summary.table.tfp, format = 'latex', digits = 2,row.names = F, 
+                  caption = 'TFP summary statistics \\label{tab:summ-tfp}') %>% 
+  kable_styling(font_size = 7)
+
+#tfp growth
+#change 1d table in df to double for kable to work
+summary.table.tfp.gr <- summary.variables$tfp_gr_5_pt %>% 
+  mutate(dplyr::across(.cols = 2:8, as.numeric))
+
+#use kable to format and create latex code for table
+kableExtra::kable(summary.table.tfp.gr, format = 'latex',digits = 2,row.names = F,
+                  caption = 'TFP five-year growth, summary statistics \\label{tab:summ-tfpgr}') %>% 
+  kable_styling(font_size = 7)
+
+#complex knowledge capital 
+#change 1d table in df to double for kable to work
+summary.table.ck <- summary.variables$ln_ck_f %>% 
+  mutate(dplyr::across(.cols = 2:8, as.numeric))
+
+#use kable to format and create latex code for table
+kableExtra::kable(summary.table.ck, format = 'latex',digits = 2,row.names = F,
+                  caption = 'Complex knowledge capital, summary statistics \\label{tab:summ-ck}') %>% 
+  kable_styling(font_size = 7)
+
+```
+
+As can be seen in the summary statistic of the level of TFP (Table \ref{tab:summ-tfp}) and even more so in  the five-year growth rate of TFP 
+(Table \ref{tab:summ-tfpgr}) the great recession and the covid pandemic have had a visible effect on total factor productivity in the sample regions. We can see in the summary statistics of the growth of TFP that the sample only reaches until 2016 which is correct because we have introduced a five-year lag. We limit our analysis thus to periods 2000-2016. 
+
+```{r}
+#| echo: false
+
+metro.panel <- metro.panel %>% filter(year < 2017)
+
+```
+
+Next, we can analyse the basic correlation between our variables of interest. To create nice-looking correlation plots, I use
+**corr** to create an exemplary correlation plot for the year 2010.
+
+```{r}
+#| label: fig-corr
+#| include: true
+#| eval: true
+#| fig-cap: "Correlation table of main variables of interest, 2010"
+#| fig-height: 15
+
+#limit df to 2010
+cor.2010.temp.df <- metro.panel %>% filter(year == 2010) %>% 
+  select(-year, -metro_code, -metro_name) 
+
+#calculate correlation
+cor.2010.temp <- cor.2010.temp.df %>% cor() %>% round(digits = 2)
+
+#significance levels
+cor.2010.p.temp <- cor.2010.temp %>%  corrplot::cor.mtest(conf.level = 0.9)
+
+#corplot
+corrplot::corrplot(cor.2010.temp, #sig.level = 0.05, p.mat = cor.2010.p.temp$p, insig = 'blank', 
+         method = 'color', order = 'original', diag = FALSE, type = 'lower', 
+         addCoef.col = 'grey15', tl.col = 'grey15',
+         tl.srt = 45, cl.ratio = 0.2, number.font = 1
+         ) 
+
+
+```
+
+As we can see in the correlation plot. The level of TFP is moderately correlated with both the knowledge capital and complex knowledge capital. However, we also see that the growth of TFP is negatively related with the level, signalling a convergence or size effect of less developed regions (im terms of TFP) growing more rapidly. What is also interesting is that while the effect of knowledge capital on the level of TFP is positive, knowledge capital is actually negatively related with the growth in TFP. However, the effect of complex knowledge capital on growth of TFP is not significantly different from zero in this unconditional cross-sectional correlation analysis.
+
+### Mapping European complex knowledge production
+
+As this study takes spatial dependence between regional innovation activities seriously, I first want to show the spatial distribution
+of the main variables of interest. In a first step I create maps to visually display a potential spatial dependence between European metro regions in their knowledge production activities. After visually 'checking' for spatial dependence or spatial heterogeneity in the main variables of interest, I run a so-called *Moran's I* test to statistically test whether the observed spatial distribution is actually different from random.  
+
+The **sf** package can be used for a multitude of spatial operations, such as reading and manipulating a map. The function **sf::st_read** 
+can be used to read so-called shapefiles as ojects of class *sf* that both include mapping information (polygons, coordinate systems, projections, etc.) and data in form of a *dataframe*. This allows easy visualisations of spatial data.
+
+```{r}
+#| label: maps-prepare
+#| echo: true
+#| eval: true
+
+##create country background map
+
+#load downloaded map file (shapefile) from EUROSTAT
+map.country.load <- sf::st_read( './data/shp/CNTR_RG_60M_2013_3035.shp')
+
+map.country <- map.country.load
+
+#only keep countries from the sample
+countries.keep <- c('ES','FI','FR','BE', 'BG','AT','EL','CY','CZ','CH','DE','DK',
+                    'EE','LT','LU',"LV", 'NL','IE','HR','HU','MT','IT','RO','NO','PL','SE','SI',
+                    'SK','UK','PT')
+
+map.country.used <- map.country %>% filter(FID %in% countries.keep)
+
+#map.country.used %>% select(geometry) %>% plot()
+
+#load pre-prepared metro map .rds, 
+map.metro <- readRDS(file = './data/maps/metro_map_110124.rds')
+
+# ggplot() +
+#   geom_sf(data = map.metro.new) +
+#   #axis limits and coords
+#   coord_sf(xlim = c(2500000, 6000000), 
+#            ylim = c(1500000, 5300000))
+
+```
+
 
 
 
