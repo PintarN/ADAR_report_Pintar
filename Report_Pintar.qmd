@@ -24,6 +24,7 @@ format:
     number-sections: true
     colorlinks: true
     fig-cap-location: top
+    fig-format: retina
     geometry:
       - top=30mm
       - left=25mm
@@ -103,7 +104,7 @@ As regions are increasingly embedded into their surroundings in their knowledge 
 
 # Methods and empirical approach
 
-## Operationalisation of knowledge complexity \label{sec-oper}
+## Operationalisation of knowledge complexity \label{sec:oper}
 
 The concept of economic complexity
 grasps the ability of countries to export non-ubiquitous product groups,
@@ -157,7 +158,7 @@ products. Translated to our notation and applied to knowledge production, this i
 and then recursively refines these variables with $n$ iterations to
 yield estimates of regional and technological complexity $(d_i^n ; u_k^n)$.
 
-\begin{align} \label{eq-mr}
+\begin{align} \label{eq:mr}
 \begin{cases}
 d_i^n = \frac{1}{d_i^0} \sum_k M_{ik} \ u_k^{n-1} \\
 u_k^n = \frac{1}{u_k^0} \sum_i M_{ik} \ d_i^{n-1}
@@ -182,7 +183,7 @@ As elaborated in the previous section, the main focus of this study is to analys
 We retrieve patent applications to the European Patent Office (EPO) by EU and EFTA inventors between
 1996 and 2016 from the OECD REGPAT database, which offers regionalised patent data. Patents are allocated to NUTS-3 regions in the REGPAT database, where patents are attributed to regions by inventor residence. We map patents located in these NUTS-3 regions to *metropolitan regions* as defined by EUROSTAT and remove (fractional) patents that are located in peripheral regions according to this classification. Similar to related literature, we define knowledge capital as aggregates of patent applications of regional inventors using a five-year moving window. Patent applications associated with the year 2000 (the first period in the sample), for example, are then the sum of patent applications from years 1996 to 2000.  
 
-Using patents mapped to *metropolitan regions* regions, it is then possible to calculate regional knowledge complexity scores for each period 2000-2016, following elaborations in Section \ref{sec-oper} and specifically Equation \ref{eq-mr}. Regional complex knowledge capital is then defined as the complexity weighted regional knowledge capital.
+Using patents mapped to *metropolitan regions* regions, it is then possible to calculate regional knowledge complexity scores for each period 2000-2016, following elaborations in Section \ref{sec:oper} and specifically Equation \ref{eq:mr}. Regional complex knowledge capital is then defined as the complexity weighted regional knowledge capital.
  
 Regional productivity is calculated using regional output and regional production factor inputs of labour and capital.  
 We define the regional total factor productivity index ($p$) adapted from Caves et al. (1982).
@@ -389,11 +390,13 @@ Next, we can analyse the basic correlation between our variables of interest. To
 #| include: true
 #| eval: true
 #| fig-cap: "Correlation table of main variables of interest, 2010"
-#| fig-height: 15
+#| fig-width: 6
+#| fig-height: 6
+#| out-width: 75%
 
 #limit df to 2010
 cor.2010.temp.df <- metro.panel %>% filter(year == 2010) %>% 
-  select(-year, -metro_code, -metro_name) 
+  select(-year, -metro_code, -metro_name, -tfp_gr_5_pt) 
 
 #calculate correlation
 cor.2010.temp <- cor.2010.temp.df %>% cor() %>% round(digits = 2)
@@ -443,19 +446,372 @@ map.country.used <- map.country %>% filter(FID %in% countries.keep)
 #map.country.used %>% select(geometry) %>% plot()
 
 #load pre-prepared metro map .rds, 
-map.metro <- readRDS(file = './data/maps/metro_map_110124.rds')
+map.metro <- readRDS(file = './data/maps/metro_map.rds')
 
 # ggplot() +
-#   geom_sf(data = map.metro.new) +
+#   geom_sf(data = map.metro ) +
 #   #axis limits and coords
-#   coord_sf(xlim = c(2500000, 6000000), 
+#   coord_sf(xlim = c(2500000, 6000000),
 #            ylim = c(1500000, 5300000))
 
 ```
 
+```{r}
+#| label: maps-df-create-1
+
+## Df related
+#calculate average tfp growth over time and also average complexity weight, for mapping
+metro.panel.avg <- metro.panel %>% group_by(metro_code) %>% 
+  dplyr::summarise(avg_tfp_gr_5_100 = 100*mean(tfp_gr_5), avg_ck_wt = mean(ECI_f_wt))
+
+#join data to map file and create last year only map file, don't need the other years for mapping
+##add growth variables to last year
+map.metro.t2 <- map.metro %>% select(metro_code, metro_name,  geometry) %>% distinct() %>%
+  mutate(t=2) %>% left_join(metro.panel %>% filter(year == 2016) %>% select(metro_code, tfp, year)) %>% 
+  left_join(metro.panel.avg , by = c('metro_code')) 
+
+#rename periphery to non na
+map.metro.t2 <- map.metro.t2 %>% mutate(type = dplyr::case_when(
+  metro_name == "periphery"  ~ "periphery", 
+  TRUE ~ "metro region"))
 
 
+## Map related
+#calculate median values of variables to be mapped for color scale
+med.tfp.t2 <- map.metro.t2 %>% filter(t==2, !is.na(tfp)) %>% pull(tfp) %>% median()
+med.ck.wt <- map.metro.t2 %>% filter(t==2, !is.na(avg_ck_wt)) %>% pull(avg_ck_wt) %>% median()
 
-## Inferential analysis
+#define colors for map
+col.periphery <- 'white'
+col.background <- 'grey95'
+col.na <- 'grey60'
+#from colorbrewer sequential multhue (discrete) scale https://colorbrewer2.org/#type=sequential&scheme=YlGnBu&n=9
+col.low <- colorspace::lighten('#ffffd9',0.0)
+col.mid <- '#41b6c4'
+col.high <- lighten('#081d58',-0.5) 
+
+#show_col(c(col.high,col.mid, col.low, col.periphery, col.na,col.background ))
+
+
+#create maps
+
+#tfp distribution t=2
+M.tfp.t2 <- ggplot() + 
+  #add country background with periphery color first, thin country lines
+  geom_sf(data = map.country, fill = col.background, linewidth = 0.25, color = 'grey75') +
+  #to get type legend
+  geom_sf(data = map.metro.t2 %>% filter(t == 2),  aes(color = type)) +
+  #change color of color
+  scale_color_manual(values = c(col.na,col.periphery), labels = c("NA\nmetro region", "periphery")) +
+  #fill all regions with periphery colour
+  geom_sf(data = map.metro.t2 %>% filter(t == 2), fill = col.periphery) + 
+  #add metro regions polygons
+  geom_sf(data = map.metro.t2 %>% filter(t == 2)  %>% filter(metro_name != "periphery") , aes(fill = tfp)) +
+  #color palette
+  scale_fill_gradient2(low = col.low,
+                      mid = col.mid,
+                      high = col.high,
+                      midpoint = med.tfp.t2,
+                      na.value = col.na,
+                      name = "TFP",
+                     guide = guide_colorbar( order = 1,
+                                              direction = "vertical",
+                                              barheight = unit(50, units = "mm"),
+                                              barwidth = unit(2, units = "mm"),
+                                              draw.ulim = F,
+                                              title.position = 'top',
+                                              # some shifting around
+                                              title.hjust = 0.4,
+                                              label.hjust = 0.5)) +
+  #add metro borders
+  geom_sf(data = map.metro.t2, linewidth = 0.1, color = "grey30", alpha=0) + 
+  #add country borders
+  geom_sf(data = map.country, linewidth = 0.5, color = "grey10", alpha = 0) +
+  #coord and limits
+  coord_sf(xlim = c(2500000, 6000000), 
+           ylim = c(1500000, 5300000)) +
+  #title
+  labs(x = NULL, y = NULL,
+       #title = 'TFP distribution of European metropolitan regions; 2016'
+       ) +
+  guides(color = guide_legend(override.aes = list(size = 5,color = 'grey30',
+                                                  fill = c(col.na,col.periphery)), 
+                              title = NULL, order = 2)) +
+  #theme
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank()) +
+  theme(text = element_text(family = 'Times', size = 12),
+        legend.position = c(0.1,0.6), 
+        legend.background = element_rect(fill = 'transparent'),
+        panel.grid.major = element_line(colour = 'grey85'),
+        panel.grid.minor = element_blank(), 
+        #plot.background = element_rect(fill = "white", color = NA), 
+        panel.background = element_rect(fill = "white", color = NA), 
+  ) 
+  
+
+#M.tfp.t2
+
+
+```
+
+```{r}
+#| label: maps-df-create-2
+#| echo: false
+
+#create the other two maps, without echo
+
+#complexity weight
+M.ck.wt <- ggplot() + 
+  #add country background with periphery color first, thin country lines
+  geom_sf(data = map.country, fill = col.background, linewidth = 0.25, color = 'grey75') +
+  #to get type legend
+  geom_sf(data = map.metro.t2 %>% filter(t == 2),  aes(color = type)) +
+  #change color of color
+  scale_color_manual(values = c(col.na,col.periphery), labels = c("NA\nmetro region", "periphery")) +
+  #fill all regions with periphery colour
+  geom_sf(data = map.metro.t2 %>% filter(t == 2), fill = col.periphery) + 
+  #add metro regions polygons
+  geom_sf(data = map.metro.t2 %>% filter(t == 2)  %>% filter(metro_name != "periphery") , aes(fill = avg_ck_wt)) +
+  #color palette
+  scale_fill_gradient2(low = col.low,
+                      mid = col.mid,
+                      high = col.high,
+                      midpoint = 2,
+                      na.value = col.na,
+                      name = "complexity \nscore",
+                     guide = guide_colorbar( order = 1,
+                                              direction = "vertical",
+                                              barheight = unit(50, units = "mm"),
+                                              barwidth = unit(2, units = "mm"),
+                                              draw.ulim = F,
+                                              title.position = 'top',
+                                              # some shifting around
+                                              title.hjust = 0.4,
+                                              label.hjust = 0.5)) +
+  #add metro borders
+  geom_sf(data = map.metro.t2, linewidth = 0.1, color = "grey30", alpha=0) + 
+  #add country borders
+  geom_sf(data = map.country, linewidth = 0.5, color = "grey10", alpha = 0) +
+  #coord and limits
+  coord_sf(xlim = c(2500000, 6000000), 
+           ylim = c(1500000, 5300000)) +
+  #title
+  labs(x = NULL, y = NULL,
+       #title = 'TFP distribution of European metropolitan regions; 2016'
+       ) +
+  guides(color = guide_legend(override.aes = list(size = 5,color = 'grey30',
+                                                  fill = c(col.na,col.periphery)), 
+                              title = NULL, order = 2)) +
+  #theme
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank()) +
+  theme(text = element_text(family = 'Times', size = 12),
+        legend.position = c(0.1,0.6), 
+        legend.background = element_rect(fill = 'transparent'),
+        panel.grid.major = element_line(colour = 'grey85'),
+        panel.grid.minor = element_blank(), 
+        #plot.background = element_rect(fill = "white", color = NA), 
+        panel.background = element_rect(fill = "white", color = NA), 
+  ) 
+  
+
+#M.ck.wt
+
+
+#growth colours
+#from colorbrewer diverging (discrete) scale https://colorbrewer2.org/#type=diverging&scheme=RdYlBu&n=11
+col.low <- '#d73027'
+col.mid <- '#ffffbf'
+col.high <- '#01665e'
+col.high <- darken('#abd9e9',0.5) 
+
+
+#tfp growth
+M.tfp.gr <- ggplot() + 
+  #add country background with periphery color first, thin country lines
+  geom_sf(data = map.country, fill = col.background, linewidth = 0.25, color = 'grey75') +
+  #to get type legend
+  geom_sf(data = map.metro.t2 %>% filter(t == 2),  aes(color = type)) +
+  #change color of color
+  scale_color_manual(values = c(col.na,col.periphery), labels = c("NA\nmetro region", "periphery")) +
+  #fill all regions with periphery colour
+  geom_sf(data = map.metro.t2 %>% filter(t == 2), fill = col.periphery) + 
+  #add metro regions polygons
+  geom_sf(data = map.metro.t2 %>% filter(t == 2)  %>% filter(metro_name != "periphery") , aes(fill = avg_tfp_gr_5_100)) +
+  #color palette
+  scale_fill_gradient2(low = col.low,
+                      mid = col.mid,
+                      high = col.high,
+                      midpoint = 0,
+                      na.value = col.na,
+                      name = "TFP growth (%) \n(5y avg.)",
+                     guide = guide_colorbar( order = 1,
+                                              direction = "vertical",
+                                              barheight = unit(50, units = "mm"),
+                                              barwidth = unit(2, units = "mm"),
+                                              draw.ulim = F,
+                                              title.position = 'top',
+                                              # some shifting around
+                                              title.hjust = 0.4,
+                                              label.hjust = 0.5)) +
+  #add metro borders
+  geom_sf(data = map.metro.t2, linewidth = 0.1, color = "grey30", alpha=0) + 
+  #add country borders
+  geom_sf(data = map.country, linewidth = 0.5, color = "grey10", alpha = 0) +
+  #coord and limits
+  coord_sf(xlim = c(2500000, 6000000), 
+           ylim = c(1500000, 5300000)) +
+  #title
+  labs(x = NULL, y = NULL,
+       #title = 'TFP distribution of European metropolitan regions; 2016'
+       ) +
+  guides(color = guide_legend(override.aes = list(size = 5,color = 'grey30',
+                                                  fill = c(col.na,col.periphery)), 
+                              title = NULL, order = 2)) +
+  #theme
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank()) +
+  theme(text = element_text(family = 'Times', size = 12),
+        legend.position = c(0.1,0.55), 
+        legend.background = element_rect(fill = 'transparent'),
+        panel.grid.major = element_line(colour = 'grey85'),
+        panel.grid.minor = element_blank(), 
+        #plot.background = element_rect(fill = "white", color = NA), 
+        panel.background = element_rect(fill = "white", color = NA), 
+  ) 
+  
+
+#M.tfp.gr
+
+
+```
+
+For actually visualising the spatial data and creating the map I am relying on **ggplot2** and specifically the *ggplot* function. This allows to create any kinds of data visualisation (e.g. histograms,  scatterplots, maps, etc.) in an easy and modular way by chaining different visual elements together with the '+' operator. Using this approach, I can intuitively create relatively complex maps that such as the choropleth map of the distribution of TFP (Figure @map-tfp-2016) that includes multiple legends, layers of different polygons (regions, countries) and the like. 
+
+```{r}
+#| label: map-tfp-2016
+#| echo: false
+#| include: false
+#| fig-cap: "TFP distribution of European metropolitan regions, 2016"
+#| fig-width: 7
+#| fig-height: 7
+#| out-width: 90%
+
+M.tfp.t2
+
+```
+
+Comparing the spatial distribution of the level of TFP with the distribution of the average of the five-year growth rate of TFP (our main dependent variable), highlights that some city-regions both have a high level of TFP and experienced high growth over the last two decades (e.g. Cork, Ireland). However, mostly the two maps reveal that regions with low level of TFP tend to have experienced the highest growth (as also evidenced by the correlation plot above).
+
+```{r}
+#| label: map-tfp-gr
+#| echo: false
+#| include: false
+#| fig-cap: "TFP growth distribution of European metropolitan regions, 2000-2021"
+#| fig-width: 7
+#| fig-height: 7
+#| out-width: 90%
+
+M.tfp.gr
+
+```
+
+Mapping the average knowledge complexity score over time for each *metropolitan-region* (Figure @map-ck-wt) offers interesting insights. First, it is interesting that knowledge complexity does not seem to go hand-in-hand with region size. While large cities (e.g. London, Paris, Munich) in terms of knowledge production do have relatively high complex knowledge production, they do not top the ranking. Instead a mix of middle-sized and middle-to-large-sized city-regions seem to be able to produce the most complex knowledge (Rennes in France, Stockholm and Eindhoven in the Netherlands). The fact that regional knowledge complexity seems to capture a different dynamic than (non-complex) knowledge complexity is encouraging for the following inferential analysis in Section @sec-inf.
+
+```{r}
+#| label: map-ck-wt
+#| echo: false
+#| include: false
+#| fig-cap: "Regional knowledge complexity, average 2000-2016"
+#| fig-width: 7
+#| fig-height: 7
+#| out-width: 90%
+
+M.ck.wt
+
+```
+
+
+### Testing for spatial dependence
+
+Visually inspecting the spatial distribution of the variables of main interest of this study, it can be assumed that productivity and also knowledge production activities are not randomly distributed around Europe. In order to test whether the null hypothesis of a random distribution of our variables of interest in space must be rejected, I run a so-called *Moran's I* test. For this test - and also the spatial models presented in Section @sec-inf, it is necessary to explicitly define a likely neighbourhood structure of the sample regions. Typically, neighbourhood is defined using geographical location in some way. This could be bilateral distance or contiguity (bordering of regions). It is also possible to define neighbourhood of regions not using the geographical location at all. For example, bilateral trade flows or connections between companies and research institutes in research projects could be the basis for the definition of a neighbourhood structure. Following the majority of the related literature and also because it makes sense with city-regions that typically don't directly border each other, I use a so-called *k*-nearest neighbour definition. More specifically, each *metropolitan-region* get attributed $k=5$ neighbours, the geographically closest ones. This serves as a good proxy for general geographical location and does not isolate islands or peripheral regions completely from the modelling exercises later. This neighbourhood information is saved in a so-called *spatial-weights matrix* (typically called $W$) that is of dimension $N\text{x}N$ and connects each region $i$ with it's neighbouring region $j$, if $w_{ij}>0$. To ease Interpretation in the regression analysis later on, values of $W$ are binarised and the matrix is row-standardised.
+
+Using the aforementioned **sf** and also the **spdep** package allows to easily extract the geographical information to create a *spatial-weight matrix* from the map object (of class *sf* dataframe) and create a corresponding *R* object of class *listw* that can be used in several spatial econometric modelling functions. 
+
+
+```{r}
+#| label: w-create
+
+#create the k=5 nearest neighbour spatial weight matrix 
+
+#only use metro regions to create W
+map.metro.only <- map.metro.t2 %>% filter(metro_name != 'periphery', !is.na(tfp))
+#plot(st_geometry(map.metro.only))
+
+#extract coordinates from centroids of metro regions
+coords <- sf::st_coordinates(sf::st_centroid(map.metro.only)) 
+coords <- coords / 100000
+
+#creating list of class knn with neighbourhood information
+k.5.knn <- spdep::knearneigh(coords, k = 5)
+#converting to a neighour list object nb
+k5.nb <- spdep::knn2nb(k.5.knn)
+k5.nb
+#converting to listw object for further use in modelling, style = W for row-standardisation
+k5.listw <- spdep::nb2listw(k5.nb, style = 'W')
+
+
+```
+
+```{r}
+#| label: w-plot
+#| fig-cap: "Neighbourhood structure of the sample, 5-nearest neighbours"
+#| include: true
+#| fig-width: 9
+#| fig-height: 9
+#| out-width: 75%
+
+
+#plot the neighbourhood structure
+
+k5.plot1 <- plot(k5.listw, map.metro.t2 %>% filter(!is.na(tfp)) %>% st_centroid() %>% st_coordinates(), col = 'indianred', lwd=0.5)
+k5.plot2 <- plot(map.metro.t2 %>% select(metro_code, geometry), col = 'white', add= T, lwd=0.5)
+plot(k5.listw, map.metro.t2 %>% filter(t==2,!is.na(tfp)) %>% st_centroid() %>% st_coordinates(),col = 'indianred', add = T, lwd=1)
+
+```
+
+Using the function **spdep::moran.test**, I can run the moran's I test on the main variables on interest. Again, I use the year 2010 as an example. 
+
+
+```{r}
+#| label: morans-i
+
+#run moran's I tests on variables of interest with 5-nearest neighbours neighbourhood structure
+
+#tfp
+moran.test.tfp <- spdep::moran.test(metro.panel %>% filter(year == 2010) %>% pull(tfp), listw = k5.listw)
+moran.test.tfp
+
+#tfp growth
+moran.test.tfp.gr <- spdep::moran.test(metro.panel %>% filter(year == 2010) %>% pull(tfp_gr_5), listw = k5.listw)
+moran.test.tfp.gr
+
+#complex knowledge
+moran.test.ck <- spdep::moran.test(metro.panel %>% filter(year == 2010) %>% pull(ECI_f_wt), listw = k5.listw)
+moran.test.ck
+
+```
+
+As can be seen in the output, all main variables of interest exhibit a significant spatial dependence along the defined neighbourhood structure, as evidenced by the Moran's I statistic than significantly different from zero.  
+
+
+## Inferential analysis {#sec-inf}
 
 # Conclusion
