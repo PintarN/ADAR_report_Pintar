@@ -174,7 +174,7 @@ technological fields (at iteration (n − 1)) in which this region is specialise
 regions (at iteration (n − 1)) that are able to produce knowledge in that
 particular field.
 
-## Theoretical framework and modelling approach
+## Theoretical framework and modelling approach {#sec-theo}
 
 ## Data
 
@@ -236,7 +236,7 @@ list.of.packages <- c('MASS', 'rlang', "tidyverse", 'dplyr','tibble','purrr','sl
                       'tictoc',
                       'corrr','psych','corrplot',
                       'rgdal','spdep','sf','rnaturalearth',
-                      'plm','splm','GWPR.light','spatialreg', 'modelsummary', 'broom',
+                      'plm','splm','GWPR.light','spatialreg', 'modelsummary', 'broom','sjPlot','car',
                        'stargazer', 'export')
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -446,7 +446,7 @@ map.country.used <- map.country %>% filter(FID %in% countries.keep)
 #map.country.used %>% select(geometry) %>% plot()
 
 #load pre-prepared metro map .rds, 
-map.metro <- readRDS(file = './data/maps/metro_map.rds')
+map.metro <- readRDS(file = '../data/maps/metro_map.rds')
 
 # ggplot() +
 #   geom_sf(data = map.metro ) +
@@ -458,6 +458,7 @@ map.metro <- readRDS(file = './data/maps/metro_map.rds')
 
 ```{r}
 #| label: maps-df-create-1
+#| eval: true
 
 ## Df related
 #calculate average tfp growth over time and also average complexity weight, for mapping
@@ -560,6 +561,7 @@ M.tfp.t2 <- ggplot() +
 ```{r}
 #| label: maps-df-create-2
 #| echo: false
+#| eval: false
 
 #create the other two maps, without echo
 
@@ -699,6 +701,7 @@ For actually visualising the spatial data and creating the map I am relying on *
 #| label: map-tfp-2016
 #| echo: false
 #| include: false
+#| eval: false
 #| fig-cap: "TFP distribution of European metropolitan regions, 2016"
 #| fig-width: 7
 #| fig-height: 7
@@ -714,6 +717,7 @@ Comparing the spatial distribution of the level of TFP with the distribution of 
 #| label: map-tfp-gr
 #| echo: false
 #| include: false
+#| eval: false
 #| fig-cap: "TFP growth distribution of European metropolitan regions, 2000-2021"
 #| fig-width: 7
 #| fig-height: 7
@@ -729,6 +733,7 @@ Mapping the average knowledge complexity score over time for each *metropolitan-
 #| label: map-ck-wt
 #| echo: false
 #| include: false
+#| eval: false
 #| fig-cap: "Regional knowledge complexity, average 2000-2016"
 #| fig-width: 7
 #| fig-height: 7
@@ -773,7 +778,7 @@ k5.listw <- spdep::nb2listw(k5.nb, style = 'W')
 ```{r}
 #| label: w-plot
 #| fig-cap: "Neighbourhood structure of the sample, 5-nearest neighbours"
-#| include: true
+#| include: false
 #| fig-width: 9
 #| fig-height: 9
 #| out-width: 75%
@@ -813,5 +818,79 @@ As can be seen in the output, all main variables of interest exhibit a significa
 
 
 ## Inferential analysis {#sec-inf}
+
+After examining basic descriptive relationships between the variables of interest and also visually inspecting the spatial distribution both of the dependent variable and also of the main variable of interest (complex knowledge production), an inferential analyis is needed to tease out the actual *controlled* relationships between these variables. While the main independent variables are knowledge capital, complex knowledge capital and their spatially lagged counterpart (see @sec-theo), the balanced panel structure of the data allows me to also control for unobserved unit and time fixed effects, possibly reducing the omitted variable bias considerably.
+
+### Non-spatial model
+
+In a first step, a fixed effects (within) linear panel model is estimated via OLS, before any proper spatial modelling is attempted. While this is not a spatial model per se, spatially lagged versions of the two independent variables are included, as motivated in Section @sec-theo. This model could also be called a *spatial-lag of X* (SLX) model and can be consistently estimated via OLS (see, e.g. LeSage and Pace, 2009).     
+
+
+```{r}
+#| label: morans-i
+#| echo: false
+
+#add spatially lagged vars for modelling 
+
+#load all vars
+metro.panel.all.vars <- readRDS(file = '../data/metro_panel_final_070124.rds')
+
+
+metro.panel.vars.sel <- metro.panel %>% left_join(metro.panel.all.vars %>% select(metro_code, year, ln_k_f_lag_k5, ln_ck_f_lag_k5)
+                                                    )
+
+#rename for better legibility
+metro.panel.vars.sel <- metro.panel.vars.sel %>% 
+  rename(tfp_growth = tfp_gr_5_pt,tfp_growth = tfp_gr_5_pt, 
+         knowledge_cap = ln_k_f, complex_knowledge_cap = ln_ck_f,
+         splag_knowledge_cap = ln_k_f_lag_k5, 
+         splag_complex_knowledge_cap = ln_ck_f_lag_k5)
+
+
+```
+
+```{r}
+#| label: make-panel
+#| echo: true
+
+#define panel structure
+metro.panel.pdf <- plm::pdata.frame(metro.panel.vars.sel, index = c('metro_code','year'))
+```
+
+```{r}
+#| label: model-slx
+
+#estimate SLX model via OLS, fixed effects
+
+model.slx <- plm::plm(formula = tfp_growth ~ knowledge_cap + complex_knowledge_cap + 
+                       splag_knowledge_cap + splag_complex_knowledge_cap,
+                      data = metro.panel.pdf, model = 'within', effect = 'twoways')
+
+summary(model.slx)
+
+```
+
+```{r}
+#| label: model-slx-plot
+
+#plot coefficient estimates
+
+sjPlot::plot_model(model.slx, show.values = T, colors = c(col.high)) + theme_minimal()
+
+```
+
+
+```{r}
+#| label: model-slx-residuals
+
+#plot residuals
+sjPlot::plot_residuals(model.slx, geom.size = 1, show.lines = F, show.pred = T,
+                       show.resid = T,show.ci = T) + theme_minimal()
+
+
+```
+
+
+
 
 # Conclusion
