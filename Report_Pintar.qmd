@@ -25,6 +25,7 @@ format:
     colorlinks: true
     fig-cap-location: top
     fig-format: retina
+    fig-dpi: 200
     geometry:
       - top=30mm
       - left=25mm
@@ -246,6 +247,10 @@ invisible(lapply(list.of.packages, require, character.only = TRUE))
 #load own package Pmisc, separate because devtools::install_github needs to be used
 #devtools::install_github("PintarN/Pmisc")
 library('Pmisc')
+
+
+#devtools::install_github("RozetaSimonovska/SDPDmod", ref = "dev", build_vignettes = TRUE)
+library('SDPDmod')
 
 ```
 
@@ -561,7 +566,7 @@ M.tfp.t2 <- ggplot() +
 ```{r}
 #| label: maps-df-create-2
 #| echo: false
-#| eval: false
+#| eval: true
 
 #create the other two maps, without echo
 
@@ -700,8 +705,8 @@ For actually visualising the spatial data and creating the map I am relying on *
 ```{r}
 #| label: map-tfp-2016
 #| echo: false
-#| include: false
-#| eval: false
+#| include: true
+#| eval: true
 #| fig-cap: "TFP distribution of European metropolitan regions, 2016"
 #| fig-width: 7
 #| fig-height: 7
@@ -716,8 +721,8 @@ Comparing the spatial distribution of the level of TFP with the distribution of 
 ```{r}
 #| label: map-tfp-gr
 #| echo: false
-#| include: false
-#| eval: false
+#| include: true
+#| eval: true
 #| fig-cap: "TFP growth distribution of European metropolitan regions, 2000-2021"
 #| fig-width: 7
 #| fig-height: 7
@@ -732,8 +737,8 @@ Mapping the average knowledge complexity score over time for each *metropolitan-
 ```{r}
 #| label: map-ck-wt
 #| echo: false
-#| include: false
-#| eval: false
+#| include: true
+#| eval: true
 #| fig-cap: "Regional knowledge complexity, average 2000-2016"
 #| fig-width: 7
 #| fig-height: 7
@@ -801,20 +806,23 @@ Using the function **spdep::moran.test**, I can run the moran's I test on the ma
 #run moran's I tests on variables of interest with 5-nearest neighbours neighbourhood structure
 
 #tfp
-moran.test.tfp <- spdep::moran.test(metro.panel %>% filter(year == 2010) %>% pull(tfp), listw = k5.listw)
+moran.test.tfp <- spdep::moran.test(metro.panel %>% filter(year == 2010) %>% 
+                                      pull(tfp), listw = k5.listw)
 moran.test.tfp
 
 #tfp growth
-moran.test.tfp.gr <- spdep::moran.test(metro.panel %>% filter(year == 2010) %>% pull(tfp_gr_5), listw = k5.listw)
+moran.test.tfp.gr <- spdep::moran.test(metro.panel %>% filter(year == 2010) %>% 
+                                         pull(tfp_gr_5), listw = k5.listw)
 moran.test.tfp.gr
 
 #complex knowledge
-moran.test.ck <- spdep::moran.test(metro.panel %>% filter(year == 2010) %>% pull(ECI_f_wt), listw = k5.listw)
+moran.test.ck <- spdep::moran.test(metro.panel %>% filter(year == 2010) %>% 
+                                     pull(ECI_f_wt), listw = k5.listw)
 moran.test.ck
 
 ```
 
-As can be seen in the output, all main variables of interest exhibit a significant spatial dependence along the defined neighbourhood structure, as evidenced by the Moran's I statistic than significantly different from zero.  
+As can be seen in the output, all main variables of interest exhibit a significant spatial dependence along the defined neighbourhood structure, as evidenced by the Moran's I statistic that is significantly different from zero.  
 
 
 ## Inferential analysis {#sec-inf}
@@ -827,7 +835,7 @@ In a first step, a fixed effects (within) linear panel model is estimated via OL
 
 
 ```{r}
-#| label: morans-i
+#| label: add-vars
 #| echo: false
 
 #add spatially lagged vars for modelling 
@@ -861,36 +869,115 @@ metro.panel.pdf <- plm::pdata.frame(metro.panel.vars.sel, index = c('metro_code'
 #| label: model-slx
 
 #estimate SLX model via OLS, fixed effects
+formula <- tfp_growth ~ knowledge_cap + complex_knowledge_cap + 
+                       splag_knowledge_cap + splag_complex_knowledge_cap
 
-model.slx <- plm::plm(formula = tfp_growth ~ knowledge_cap + complex_knowledge_cap + 
+model.slx.fe <- plm::plm(formula = tfp_growth ~ knowledge_cap + complex_knowledge_cap + 
                        splag_knowledge_cap + splag_complex_knowledge_cap,
                       data = metro.panel.pdf, model = 'within', effect = 'twoways')
 
-summary(model.slx)
+summary(model.slx.fe)
 
 ```
+
+Using the **plm** package it is straightforward to estimate a linear panel model with time and unit fixed effects ('twoways'). Using the Hausman Test from the **plm**, I can test whether the *random* or *fixed* effects model is preferred. Given that the null hypothesis (both the random and fixed effects estimates are consistent) needs to be rejected, I select the *fixed* effects model as the preferred one.
+
+```{r}
+#| label: hausman-test
+
+#run model with random effects
+model.slx.re <- plm::plm(formula = tfp_growth ~ knowledge_cap + complex_knowledge_cap + 
+                       splag_knowledge_cap + splag_complex_knowledge_cap,
+                      data = metro.panel.pdf, model = 'random', effect = 'twoways')
+
+#Hausman Test
+plm::phtest(model.slx.re,model.slx.fe )
+
+```
+
+Inspecting the output of the fixed effects model (above) and specifically the  F-statistic suggests that the variables of interest may, in addition to time and unit fixed effects, be helpful in explaining the within variance of the data.  
+
+Using the **sjPlot** package I can easily generate a coefficient estimate plot (Figure @model-slx-plot) where the coefficient estimates can be visually inspected. 
 
 ```{r}
 #| label: model-slx-plot
+#| fig-cap: "Coefficient estimates plot, SLX"
+#| fig-width: 6
+#| fig-height: 6
+#| out-width: 75%
 
 #plot coefficient estimates
 
-sjPlot::plot_model(model.slx, show.values = T, colors = c(col.high)) + theme_minimal()
+sjPlot::plot_model(model.slx.fe, show.values = T, colors = c(col.high)) + 
+    theme_minimal() + geom_hline(aes(yintercept = 0), linewidth = 1, color = 'grey25')
 
 ```
 
+The coefficient estimates correspond to the main variables of interest as described in Section @sec-theo where *splag* refers to the spatially lagged version of knowledge capital and complex knowledge capital, respectively. Interestingly, complex knowledge capital does not seem to have an impact on future total factor productivity and regular knowledge capital even contributes to a slowing of productivity. In contrast, neighbouring non-complex knowledge production and also complex knowledge production is estimated to significantly increase future productivity, suggesting that the embeddedness of region into their immediate surroundings is important in economic terms and also that spatial effects should not be omitted from the model. Using **car::VIF** function to estimate variance inflation factors, suggests that this model does not suffer from multicollinearity.
+
+```{r}
+#| label: model-slx-vif
+
+#run pooling model to calculate variance inflation factors
+model.slx.pool <- plm::plm(formula = tfp_growth ~ knowledge_cap + complex_knowledge_cap + 
+                       splag_knowledge_cap + splag_complex_knowledge_cap,
+                      data = metro.panel.pdf, model = 'pooling')
+
+car::vif(model.slx.pool)
+
+```
+
+The **sjPlot** package allows to plot the residuals and fitted values for each independent variable for panel model to visually inspect how well actual and predicted values of the outcome fit across the predictor variables.
+
+
+```{r}
+#| label: model-slx-residual-plot
+#| fig-cap: "Residual plots, SLX"
+#| eval: false
+#| include: false
+#| fig-width: 5
+#| fig-height: 5
+#| out-width: 75%
+
+#plot residuals
+sjPlot::plot_residuals(model.slx.fe, geom.size = 1, show.lines = T, show.pred = T,
+                       show.resid = T,show.ci = T) + theme_minimal()
+
+```
+
+While there are obviously outlier observations with high residuals, these are not necessarily observed within the same quantile of the independent variables and thus do not seem to lead to bad or systematic behaviour of the residuals. The darker circles in Figure @model-slx-residual-plot refer to the fitted values which are linked with a line to the observed values, forming the residuals.
+
+If the error term in a linear model exhibits spatial dependence, the assumption of uncorrelated errors is violated, resulting in at least inefficient estimates. We can test this by running a Moran's I test on the residuals of the model. Again, I use 2010 as an example year. 
 
 ```{r}
 #| label: model-slx-residuals
 
-#plot residuals
-sjPlot::plot_residuals(model.slx, geom.size = 1, show.lines = F, show.pred = T,
-                       show.resid = T,show.ci = T) + theme_minimal()
+#extract residuals for year 2010
+resids.temp <- dplyr::tibble(residuals = residuals(model.slx.fe),attr( residuals(model.slx.fe), 'index') ) %>%
+  filter(year == 2010) %>% pull(residuals)
 
+moran.test(resids.temp, listw = k5.listw)
 
 ```
 
+It turns out, even though spatial effects are somewhat already controlled for in the model - through the the spatially lagged predictors - there is still significant spatial autocorrelation in the residuals. This indicates that it might be best to properly model spatial effects in order to eliminate the remaining spatial autocorrelation in the residuals. There are several options of popular spatial econometric models used in related literature, introducing explicit (modelled) spatial dependence either in the error term, the independent variables (SLX), the dependent variable or a combination thereof. If regional TFP actually depends on neighbouring TFP, meaning that positive spillovers exist and regions benefit from being close to highly productive other regions (ceteris paribus), employing a model that does not account for this (like the SLX) will lead to biased estimates. As there are multiple different model variants to choose from, I take an agnostic approach and estimate Bayesian log-marginal posterior probabilities to identify the model that best explains the data. With the package **SDPDmod**, this is easily done. 
 
+```{r}
+#| label: bayesian-post-prob
 
+#calculate bayesian posterior probabilities to decide proper spatial model
 
+#create matrix object of spatial weight matrix (listw)
+k5.mat <- listw2mat(k5.listw)
+k5.mat[1:5,1:5]
+
+bpp <- SDPDmod::blmpSDPD(formula, data = metro.panel.pdf,
+                W = k5.mat,
+                effect = 'twoways',
+                index  = c('metro_code','year'), 
+                prior = 'beta',
+                model = list("ols","slx","sar","sdm","sem","sdem")
+                )
+bpp$probs
+```
 # Conclusion
