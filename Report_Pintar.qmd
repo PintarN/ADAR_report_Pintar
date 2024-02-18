@@ -891,7 +891,7 @@ model.slx.re <- plm::plm(formula = tfp_growth ~ knowledge_cap + complex_knowledg
                       data = metro.panel.pdf, model = 'random', effect = 'twoways')
 
 #Hausman Test
-plm::phtest(model.slx.re,model.slx.fe )
+plm::phtest(model.slx.re,model.slx.fe)
 
 ```
 
@@ -980,4 +980,53 @@ bpp <- SDPDmod::blmpSDPD(formula, data = metro.panel.pdf,
                 )
 bpp$probs
 ```
+
+Using bayesian methods, this allows to estimate the (spatial) model that best explains the data. It seems that the *spatial durbin model* (SDM) is best equipped to explain the effects of knowledge production on regional TFP growth. Consequently, this model is adapted.
+
+### Spatial model
+
+Once a spatial model is employed that not only influence space in the error or independent variables but also allows neighbouring regions' explained variable to directly affect a regions total factor productivity, basic OLS estimation will be biased if this spatial effect is significant (LeSage and Pace; 2009, Elhorst; 2014). To avoid this, a maximum likelihood (ML) approach is typically used by researchers and implemented by software packages (e.g., **plm**). As already mentioned in Section @sec-theo, adopting a proper spatial model complicates the interpretation of coefficient estimates due to direct and indirect spillover effects. As is usual in related literature, I use the ML coefficient estimates for the independent variables and the spatial lag coefficient together to produce direct, indirect and total impact estimates (see LeSage and Pace; 2009). The **SDPDmod** offers both ML estimation of the panel fixed effects SDM model as well as calculation of impacts estimates (with bootstrapped standard error).
+
+```{r}
+#| label: model-sdm
+
+#use sdpdmod to estimate model and also impact estimates as spml does not properly do sdm impacts for panel models
+
+model.sdm.fe <- SDPDmod::SDPDm(tfp_growth ~ knowledge_cap + complex_knowledge_cap, data = metro.panel.pdf,
+                   W = k5.mat,
+                   index  = c('metro_code','year'),
+                   model = 'sdm',
+                   effect = 'twoways')
+
+summary(model.sdm.fe)
+
+```
+
+Interpreting the results for the SDM model and comparing them to the SLX model, reveals both similarities and differences. First, the introduced spatial autoregressive coefficient (rho) is positive and highly significant. European metropolitan regions benefit in their productivity development from being near growing city-regions, controlling for own and neighbouring knowledge production inputs. Taking this into account, leads to smaller coefficient estimates with regards to non-complex knowledge production and increases the apparent effect of complex knowledge production. However, to properly interpret the model, one needs to calculate impact estimates.
+
+
+```{r}
+#| label: model-sdm-impacts
+
+#impacts
+sdm.impacts <- SDPDmod::impactsSDPDm(model.sdm.fe)
+
+summary(sdm.impacts.fe)
+
+```
+
+While the impact estimates are closer to the SLX model, the trend continues. Taking into account a spatial lag in the dependent variable reduces the apparent effectiveness of non-complex knowledge production in TFP growth while revealing a higher effect of complex knowledge production on productivity growth (compared to the SLX model). 
+
+```{r}
+#| label: model-sdm-residuals
+
+#extract residuals for year 2010
+resids.temp.sdm <- dplyr::tibble(residuals = model.sdm.fe$resuduals) %>% slice(1921:2112) %>% pull()
+
+moran.test(resids.temp.sdm, listw = k5.listw)
+
+```
+
+Checking again for residual spatial autocorrelation (for the year 2010, exemplary) reveals that the *spatial durbin model* seems to have eliminated all spatial dependence in the residuals which further strengthens the argumentation for this specific modelling approach.
+
 # Conclusion
