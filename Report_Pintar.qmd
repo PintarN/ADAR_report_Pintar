@@ -98,7 +98,8 @@ large cities commute to work, economic activity in these commuter belts
 should be counted towards the main city, essentially creating functional
 areas. The so-called *metropolitan regions* defined by EUROSTAT (2019) 
 - which we use in this study as a unit of observation -  aim to do that. 
-The final contribution of this study is to relate regional knowledge
+
+The focus of this study is on relating regional knowledge
 complexity - compared to non-complex knowledge production -  to regional productivity in a spatial regression framework. 
 As regions are increasingly embedded into their surroundings in their knowledge production activities - be it via formal or informal research and development collaborations - it is important to relax the independent observation assumption of basic linear regression models and explicitly take space into account. Specifically, we employ a *spatial durbin model* (SDM) that introduces a spatially lagged dependent variable and multiple spatially lagged independent variables to explain regional knowledge production. 
 
@@ -175,6 +176,77 @@ regions (at iteration (n − 1)) that are able to produce knowledge in that
 particular field.
 
 ## Theoretical framework and modelling approach {#sec-theo}
+
+In order to explore the link between regional knowledge complexity and TFP, we adopt a spatial
+econometric modelling approach. Conceptually, the modelling approach is inspired by the
+extended regional knowledge capital model (KCM) that relates region-internal and regional external knowledge to regional total factor productivity (Fischer, Scherngell and Reismann, 2009; LeSage and Fischer, 2012; Scherngell, Borowiecki and Hu, 2014). This extended version
+of the famous knowledge capital model (Griliches, 1979) includes knowledge spillovers in
+addition to internal knowledge capital in the production function.
+
+Following the theoretical derivation in Scherngell et al. (2014), the extended regional
+knowledge capital model leads to an expression of regional output in the form of:
+ 
+
+\begin{align} \label{eq:q}
+Q_{it}= L_{it}^\alpha  \  C_{it}^{\alpha-1} \ K_{it}^{\beta_1} \ {K_{it}^\star}^{\beta_2} .
+\end{align}
+
+Here, $Q$ refers to regional output, $L$ to labour input, $C$ to capital input, $K$ to region-internal and
+$K^\star$ to region-external knowledge. Alpha is the output elasticity with respect to labour and
+capital input. The indices $i$ and $t$ refer to region and time, respectively. As we believe that the
+quality of knowledge or knowledge complexity of a region also needs to be taken into account,
+we further extend this model by including region internal and region external knowledge
+complexity.
+
+\begin{align} \label{eq:qstar}
+Q_{it}= L_{it}^\alpha  \  C_{it}^{\alpha-1} \ K_{it}^{\beta_1} \ {K_{it}^\star}^{\beta_2} \ CK_{it}^{\beta_3} \ {CK_{it}^\star}^{\beta_4}
+\end{align}
+
+As total factor productivity (TFP) is defined as output over conventional inputs (labour and
+capital), equation \ref{eq:qstar} leads to:
+
+\begin{align} \label{eq:p}
+P_{it}= \ K_{it}^{\beta_1} \ {K_{it}^\star}^{\beta_2} \ CK_{it}^{\beta_3} \ {CK_{it}^\star}^{\beta_4} .
+\end{align}
+
+This relates region internal and external knowledge capital ($K$) as well as complex knowledge
+capital ($CK$) to regional total factor productivity. Taking the log form of this expression gives:
+
+\begin{align} \label{eq:plog}
+p=  \beta_1 \, k +  \beta_2 \, W\, k +  \beta_3 \, ck \ + \beta_4 \, W \, ck ,
+\end{align}
+
+where lower case letters refer to logged (natural) variables. Here, region and time indices are
+dropped for visual convenience. This equation already gives us a starting point for our empirical
+modelling exercise to tease out whether knowledge capital and interestingly complex
+knowledge capital can be shown to be positively associated with regional TFP development.
+Because subnational regions are highly integrated into their environment in their economic but
+also knowledge creation activities (as mentioned above), we suspect that estimating a regional
+model according to equation \ref{eq:plog} would suffer from omitted variable bias. This is likely the case
+as the spatial interconnectedness of regions is not well captured by the model. Following related
+literature (Elhorst, 2014a; Scherngell, Borowiecki and Hu, 2014) Scherngell et al (2014) we
+thus include the spatial lag of the dependent variable (TFP) to yield as *spatial durbin model*
+(SDM) of the form:
+
+\begin{align} \label{eq:sdm}
+p = \rho \, W \,p + \beta_1 \, k +  \beta_2 \, W\, k +  \beta_3 \, ck \ + \beta_4 \, W \, ck + \epsilon .
+\end{align}
+
+Following convention, $\rho$ refers to the coefficient of the spatial autoregressive process between
+neighbouring regions. Note that in this model, regional total factor productivity might be
+influenced by neighbouring productivity. The spatial weight matrix $W$ defines the assumed
+neighbourhood structure of our model and serves to include space into the modelling framework via spatially lagging dependent and independent variables (see Section below). The matrix $W$ will be defined in Section @sec-spatial. The last term in equation \ref{eq:sdm} ($\epsilon$) refers to an *iid* error term.
+
+
+### Spatial econometric modelling
+
+Spatial models may be used to model spatial data, e.g. subnational regional data, where spatial dependence between observations may be expected. In such cases, the independent observation assumption of basic linear regression models may be violated which would lead to biased estimates. To remedy this, spatial effects are explicitly taken into account and modelled. In the example of the previously mentioned *spatial durbin model*, space enters the regression equation through a spatially lagged dependent and spatially lagged independent variables. The *spatial weight matrix* $W$ is used to create such spatially lagged variables. The product of $W$ with a variable of interest yields a vector that includes weighted averages of neighbouring regions' values of said variable for each observation $i$.
+A model including such spatial lags might be motivated purely statistically, as it allows to  control for possible spatial dependence within the data, aiming to reduce the bias a non-spatial model would suffer. However, it also enables the researcher to actually model inter-dependencies or spillovers between regions. More specifically, the model at hand (equation \ref{eq:sdm}) relates regional productivity development to region-internal (complex) knowledge capital as well as region-external (neighbouring) (complex) knowledge capital. Given that knowledge production activities are inherently collaborative and because these collaborations are increasingly conducted between cities, it is expected that regions will not only benefit from innovation activities within them but also in neighbouring cities. However, not only might neighbouring knowledge production activities influence productivity development, simply being well connected to growing cities might positively influence regions because of the various transfer of goods and services but also labour force that might occur between those regions. Including a spatial lag of the dependent variable allows to control for this. LeSage and Pace (2009) list a few more motivations of the SDM model, both statistical and theoretical.
+
+
+
+For details about the estimation and interpretation of a spatial
+durbin model, please refer to (LeSage and Pace, 2009; Elhorst, 2014b).
 
 ## Data
 
@@ -748,7 +820,7 @@ M.ck.wt
 ```
 
 
-### Testing for spatial dependence
+### Testing for spatial dependence {#sec-spatial}
 
 Visually inspecting the spatial distribution of the variables of main interest of this study, it can be assumed that productivity and also knowledge production activities are not randomly distributed around Europe. In order to test whether the null hypothesis of a random distribution of our variables of interest in space must be rejected, I run a so-called *Moran's I* test. For this test - and also the spatial models presented in Section @sec-inf, it is necessary to explicitly define a likely neighbourhood structure of the sample regions. Typically, neighbourhood is defined using geographical location in some way. This could be bilateral distance or contiguity (bordering of regions). It is also possible to define neighbourhood of regions not using the geographical location at all. For example, bilateral trade flows or connections between companies and research institutes in research projects could be the basis for the definition of a neighbourhood structure. Following the majority of the related literature and also because it makes sense with city-regions that typically don't directly border each other, I use a so-called *k*-nearest neighbour definition. More specifically, each *metropolitan region* get attributed $k=5$ neighbours, the geographically closest ones. This serves as a good proxy for general geographical location and does not isolate islands or peripheral regions completely from the modelling exercises later. This neighbourhood information is saved in a so-called *spatial-weights matrix* (typically called $W$) that is of dimension $N\text{x}N$ and connects each region $i$ with it's neighbouring region $j$, if $w_{ij}>0$. To ease Interpretation in the regression analysis later on, values of $W$ are binarised and the matrix is row-standardised.
 
@@ -1017,7 +1089,7 @@ summary(model.sdm.fe)
 
 ```
 
-Interpreting the results for the SDM model and comparing them to the SLX model, reveals both similarities and differences. First, the introduced spatial autoregressive coefficient (rho) is positive and highly significant. European metropolitan regions benefit in their productivity development from being near growing city-regions, controlling for own and neighbouring knowledge production inputs. Taking this into account, leads to smaller coefficient estimates with regards to non-complex knowledge production and increases the apparent effect of complex knowledge production. However, to properly interpret the model, one needs to calculate impact estimates.
+Interpreting the results for the SDM model and comparing them to the SLX model, reveals both similarities and differences. First, the introduced spatial autoregressive coefficient (rho) is positive and highly significant. European metropolitan regions benefit in their productivity development from being near growing city-regions, controlling for own and neighbouring knowledge production inputs. Taking this into account, leads to smaller coefficient estimates with regards to non-complex knowledge production and increases the apparent effect of complex knowledge production, relatively. However, to properly interpret the model, one needs to calculate impact estimates. 
 
 
 ```{r}
@@ -1030,7 +1102,7 @@ summary(sdm.impacts.fe)
 
 ```
 
-While the impact estimates are closer to the SLX model, the trend continues. Taking into account a spatial lag in the dependent variable reduces the apparent effectiveness of non-complex knowledge production in TFP growth while revealing a higher effect of complex knowledge production on productivity growth (compared to the SLX model). As the direct and indirect (neighbour) effect of knowledge capital on TFP growth are opposed, the total effect of regional knowledge production on future TFP growth cannot statistically distinguished from zero. It is thus not clear if policies that support the non-discriminative production of new knowledge will lead to a positive productivity development of city-regions. In contrast, while *metropolitan regions* might not benefit directly from specialising solely in complex technologies (ceteris paribus), policies that encourage regions in their development of complex technologies are likely to have a positive effect on overall total factor productivity development.  
+While the impact estimates are closer to the SLX model, the trend continues. Taking into account a spatial lag in the dependent variable reduces the apparent effectiveness of non-complex knowledge production in TFP growth while revealing a higher effect of complex knowledge production on productivity growth (compared to the SLX model). As the direct and indirect (spillover) effect of knowledge capital on TFP growth are opposed, the total effect of regional knowledge production on future TFP growth cannot be statistically distinguished from zero. It is thus not clear if policies that support the non-discriminative production of new knowledge will lead to a positive productivity development of city-regions. In contrast, while *metropolitan regions* might not benefit directly from specialising solely in complex technologies (ceteris paribus), policies that encourage regions in their development of complex technologies are likely to have a positive effect on overall total factor productivity development.  
 
 ```{r}
 #| label: model-sdm-residuals
@@ -1053,7 +1125,7 @@ Mapping European metropolitan knowledge production based on patent applications 
 
 The typical assumption often made by related literature that cities are highly embedded into their neighbouring counterparts in economic development but also in their innovation activities, is broadly supported by empirical results of this study. Not only do the level and the growth of regional total factor productivity exhibit significant spatial dependence (autocorrelation), but also the complex and non-complex knowledge production - the predictor variables in the modelling exercises - suggest that cities are interdependent in their innovative activities. Given this, often employed modelling approaches in the literature such as pooled or even fixed effects linear models estimated by OLS, are likely biased. In order to properly take the geographical location of city-regions into account, I opted to estimate a number of models that explicitly model the spatial dependence of *metropolitan regions'* knowledge production. 
 
-Employing a fixed effects *spatial durbin model* allows the following interpretations. European *metropolitan regions* benefit from spillover effects from other European city-regions, so regions should work on increasing their embeddedness with other regions. While regions might suffer from a negative size effect in terms of their effectiveness to translate their own overall patent production to future TFP growth, focusing on complex technology fields might lead to a European wide system of *metropolitan regions* that mutually benefit from each others new complex knowledge production.
+Employing a fixed effects *spatial durbin model* yields a number of insights. European *metropolitan regions* benefit from spillover effects from other European city-regions, so regions should work on increasing their embeddedness with other regions and policies should promote this behaviour.While regions should not focus their efforts on any non-complex technology in the hopes of increasing future TFP, developing complex technology fields might lead to a European wide system of *metropolitan regions* that mutually benefit from each others new complex knowledge production.
 
 
 
