@@ -224,29 +224,58 @@ Because subnational regions are highly integrated into their environment in thei
 also knowledge creation activities (as mentioned above), we suspect that estimating a regional
 model according to equation \ref{eq:plog} would suffer from omitted variable bias. This is likely the case
 as the spatial interconnectedness of regions is not well captured by the model. Following related
-literature (Elhorst, 2014a; Scherngell, Borowiecki and Hu, 2014) Scherngell et al (2014) we
+literature (Elhorst, 2014; Scherngell, Borowiecki and Hu, 2014) Scherngell et al (2014) we
 thus include the spatial lag of the dependent variable (TFP) to yield as *spatial durbin model*
 (SDM) of the form:
 
-\begin{align} \label{eq:sdm}
+\begin{align} \label{eq:sdm-p}
 p = \rho \, W \,p + \beta_1 \, k +  \beta_2 \, W\, k +  \beta_3 \, ck \ + \beta_4 \, W \, ck + \epsilon .
 \end{align}
 
 Following convention, $\rho$ refers to the coefficient of the spatial autoregressive process between
 neighbouring regions. Note that in this model, regional total factor productivity might be
 influenced by neighbouring productivity. The spatial weight matrix $W$ defines the assumed
-neighbourhood structure of our model and serves to include space into the modelling framework via spatially lagging dependent and independent variables (see Section below). The matrix $W$ will be defined in Section @sec-spatial. The last term in equation \ref{eq:sdm} ($\epsilon$) refers to an *iid* error term.
+neighbourhood structure of our model and serves to include space into the modelling framework via spatially lagging dependent and independent variables. The matrix $W$ will be defined in Sections @sec-modelling and @sec-spatial. 
 
 
-### Spatial econometric modelling
+### Spatial econometric modelling {#sec-modelling}
 
-Spatial models may be used to model spatial data, e.g. subnational regional data, where spatial dependence between observations may be expected. In such cases, the independent observation assumption of basic linear regression models may be violated which would lead to biased estimates. To remedy this, spatial effects are explicitly taken into account and modelled. In the example of the previously mentioned *spatial durbin model*, space enters the regression equation through a spatially lagged dependent and spatially lagged independent variables. The *spatial weight matrix* $W$ is used to create such spatially lagged variables. The product of $W$ with a variable of interest yields a vector that includes weighted averages of neighbouring regions' values of said variable for each observation $i$.
-A model including such spatial lags might be motivated purely statistically, as it allows to  control for possible spatial dependence within the data, aiming to reduce the bias a non-spatial model would suffer. However, it also enables the researcher to actually model inter-dependencies or spillovers between regions. More specifically, the model at hand (equation \ref{eq:sdm}) relates regional productivity development to region-internal (complex) knowledge capital as well as region-external (neighbouring) (complex) knowledge capital. Given that knowledge production activities are inherently collaborative and because these collaborations are increasingly conducted between cities, it is expected that regions will not only benefit from innovation activities within them but also in neighbouring cities. However, not only might neighbouring knowledge production activities influence productivity development, simply being well connected to growing cities might positively influence regions because of the various transfer of goods and services but also labour force that might occur between those regions. Including a spatial lag of the dependent variable allows to control for this. LeSage and Pace (2009) list a few more motivations of the SDM model, both statistical and theoretical.
+Spatial models may be used to model spatial data, e.g. subnational regional data, where spatial dependence between observations may be expected. In such cases, the independent observation assumption of basic linear regression models may be violated which would lead to biased estimates. To remedy this, spatial effects are explicitly taken into account and modelled. In the example of the previously mentioned *spatial durbin model*, space enters the regression equation through a spatially lagged dependent and spatially lagged independent variables. The *spatial weight matrix*  $W$ is used to create such spatially lagged variables. The product of $W$ with a variable of interest yields a vector that includes weighted averages of neighbouring regions' values of said variable for each observation $i$.
+A model including such spatial lags might be motivated purely statistically, as it allows to  control for possible spatial dependence within the data, aiming to reduce the bias a non-spatial model would suffer. However, it also enables the researcher to actually model inter-dependencies or spillovers between regions. More specifically, the model at hand (equation \ref{eq:sdm-p}) relates regional productivity development to region-internal (complex) knowledge capital as well as region-external (neighbouring) (complex) knowledge capital. Given that knowledge production activities are inherently collaborative and because these collaborations are increasingly conducted between cities, it is expected that regions will not only benefit from innovation activities within them but also in neighbouring cities. However, not only might neighbouring knowledge production activities influence productivity development, simply being well connected to growing cities might positively influence regions because of the various transfer of goods and services but also labour force that might occur between those regions. Including a spatial lag of the dependent variable allows to control for this. LeSage and Pace (2009) list a few more motivations of the SDM model, both statistical and theoretical.
 
+To demonstrate the workings of the SDM, the general cross-section SDM regression model (\ref{eq:sdm}) is shown where $\rho$ refers to the coefficient of the spatial autoregressive process between neighbouring regions, $\alpha$ is the parameter associated with the intercept. As mentioned, the (N-by-N dimensional) *spatial weight matrix*  $W$ connects the regions by defining their neighbourhood structure. The independent variables are included via the (N-by-h) matrix $X$ with its associated vector of coefficients. Neighbouring regions' values are included in the model through the matrix $WX$ of dimension N-by-h and $\theta$ refers to the associated coefficient vector. The last term in equation \ref{eq:sdm} ($\epsilon$) refers to an *iid* error term of dimension N-by-1. 
 
+It is obvious that this model suffers from endogenous variables on the right hand side. Even though the model might be expressed in an exogenous manner (reduced form, see \ref{eq:sdm-red}), OLS parameter estimates and standard errors will be inconsistent in the presence of spatial effects (LeSage and Pace, 2009). Following the majority of related literature, I adopt maximum likelihood (ML) estimation methods which yield consistent estimates. 
 
-For details about the estimation and interpretation of a spatial
-durbin model, please refer to (LeSage and Pace, 2009; Elhorst, 2014b).
+\begin{align} \label{eq:sdm}
+y = \rho \,  W \,y + \alpha_{\iota N} + X \, \beta  + W \, X \, \theta  + \epsilon \\
+\end{align}
+
+\begin{align} \label{eq:sdm-red}
+y = (I_N - \rho W)^{-1} \, (\alpha_{\iota N}  + X \, \beta  + W \, X \, \theta  + \epsilon)  
+\end{align}
+
+For details on the proper estimation of SDM models using maximum likelihood, see, for example, LeSage and Pace (2009) or Elhorst (2014).
+
+Including space into the modelling framework will not only make the estimation more challenging but also allows to model spatial or spillovers effects between regions. Because of the inclusion of spatial lags of the dependent and independent variables, a change in one region might not only affect the outcome in this region (direct effect) but potentially influence all other regions indirectly. While this enables the researcher to gain an insight into the interconnected nature and spatial dependence of regions, this also complicates the interpretation of the parameter estimates. In contrast to the classic linear regression model where the partial derivative of x equals the marginal effect and is given by the parameter estimate ($\frac{\partial E[y_i]}{\partial x_{ih}}= \hat{\beta_h}$), the marginal effect on $y_i$ from a change in variable $x_h$ in region $i$ is not equal to the estimated parameter $\beta_h$ in equation \ref{eq:sdm-red}. Not only this but the spillover effects that enter the model via $Wy$ and $WX$ also lead to the fact that a change in region $i$ might influence the dependent variable in all other regions $j\neq i$. In other words, the cross-partial derivative is not zero, as is always the case in the classic linear regression model. 
+
+It can be shown that the partial derivative of $y$ with respect to $x_k$ is a full matrix:
+
+\begin{align} \label{eq:sdm-partial}
+\frac{\partial y}{\partial x_{h}}= S = (I_N - \rho W)^{-1} \, (I \beta_h  + W \, X \, \theta_h)  .
+\end{align}
+
+The inverse matrix in equation \ref{eq:sdm-partial} and also in equation \ref{eq:sdm-red} may be used to explain the spatial dependence structure of the model. This may also be written as a Neumann series:
+
+\begin{align} \label{eq:sdm-neumann}
+ (I_N - \rho W)^{-1} = I + \rho W + \rho^2 W^2 + \rho^3 W^3 + \ldots 
+\end{align}
+
+Changes in independent variables of one region will have an influence on the region itself but also influence its neighbours depending on the estimated strength of the spatial autoregressive process ($\rho W$). In turn, effects will travel to the neighbours neighbours ($\rho^2 W^2$) and so on. Because a region $i$ is also its neighbours neighbour, some part of the initial effect will feed back to the region itself. As $\rho$ is typically less than $1$, there is a decaying effect with the increasing order of neighbours. Closer neighbours will have a larger effect which makes intuitive sense.
+
+As the partial derivatives of the SDM are not equal to the parameter estimates in equation \ref{eq:sdm-red} as they are a full N-by-N matrix (see equation \ref{eq:sdm-partial}), there is the need to reduce these to some sort of summary measures. LeSage and Pace (2009) suggest calculating so-called total, direct and indirect impacts from the matrix $S$. The direct impacts are calculated as the average of the diagonal elements of $S$ and translate in the interpretation to the parameter estimates of the classic linear model. Average marginal effect of a change in independent variable in region $i$ on dependent variable of region $i$. However, since feedback loops are taken into account, this also includes the effect that travels through neighbours back to the original region. The total impact is calculated as the average overl all elements of $S$ and can be interpreted as the average effect on $y$ resulting from changes from $x_k$ from all regions. Lastly, the indirect impact captures spillover effects to other regions. It is calculated as the average of the off-diagonal elements of $S$. 
+
+The significance of the impacts can then be estimated by bootstrapping standard errors with the help of the variance-covariance matrix from the ML estimations (LeSage and Pace, 2009).
 
 ## Data
 
