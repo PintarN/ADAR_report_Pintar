@@ -26,7 +26,7 @@ format:
     colorlinks: true
     fig-cap-location: top
     fig-format: retina
-    fig-dpi: 150
+    fig-dpi: 450
     geometry:
       - top=30mm
       - left=25mm
